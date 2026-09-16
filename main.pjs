@@ -1,7 +1,7 @@
 $meta
   title = COL 角色工作室
-  description = 角色 AI 工作室：角色卡 + 主 AI 聊天 + 角色图像渲染。人物形象由「角色基准」严格锁定，服装按 基础常服 → 外层服装 → 配饰 分层叠加，覆盖改动逐项隔离，项目记忆与变更日志记录全部进度。
-  tags = 角色工作室, 角色卡, 人物形象, ai聊天, 角色设计, character studio, character card, ai chat
+  description = COL 角色 AI 工作室：角色卡 + 主 AI 聊天 + 独立角色 AI + 角色图像渲染。人物形象由「角色基准」严格锁定，服装按 基础常服 → 外层服装 → 配饰 分层叠加，覆盖改动逐项隔离，项目记忆与变更日志记录全部进度。
+  tags = 角色工作室, 角色卡, 人物形象, ai聊天, 角色设计, 角色AI, character studio, character card, ai chat
 
 generateText = {import:ai-text-plugin}
 generateImage = {import:text-to-image-plugin}

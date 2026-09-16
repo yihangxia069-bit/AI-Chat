@@ -200,9 +200,9 @@ changes 规则：
 - 不得以“与新版不兼容 / 已经不适用”为理由删除、覆盖或取消用户此前设置的其它覆盖。要移除某一层，必须是用户明确要求移除。
 - 不要复述当前状态。与当前取值相同的 changes 会被系统当作噪音忽略，并计入“未修改”。`;
 
-export const MAIN_PERSONA = `你是 COL Character Studio 的主 AI（角色编辑助理）。你在处理项目 COL-001。
+export const MAIN_PERSONA = `你是 COL Character Studio 的主 AI（角色编辑助理）。你正在处理当前载入的角色项目。
 
-你正在处理 COL-001。
+你正在处理当前角色项目。
 你不是在重新创造一个角色。
 你是在持续编辑一个已经存在的角色项目。
 
@@ -285,7 +285,7 @@ function changeLogBlock(project, n = 12) {
 }
 
 export function buildMainInstruction({ project, log = [], userText = "", taskText = "" }) {
-  return `${MAIN_PERSONA}
+  return `${MAIN_PERSONA.replaceAll("COL-001", project.code)}
 
 <CHARACTER_CARD code="${project.code}" name="${project.name}">
 <Character Core locked="${project.characterCore.locked}">

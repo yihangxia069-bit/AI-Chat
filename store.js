@@ -1,7 +1,8 @@
-import { cloneProject } from "./state.js";
+import { cloneProject, createCharacterCard } from "./state.js";
 
 const P = "colProject";
 const C = "colCharacter";
+const RC = "colRoleCards";
 const S = "colSnapshots";
 const B = "colBackup";
 const F = "colFavorites";
@@ -15,18 +16,8 @@ export function fingerprint(obj) {
   return (h >>> 0).toString(16);
 }
 
-function kvReady(){
-  window.root=window.root||{};
-  if(root.kv) return true;
-  const makeNS=(p)=>({
-    async get(k){const v=localStorage.getItem(p+k);return v?JSON.parse(v):null;},
-    async set(k,v){localStorage.setItem(p+k,JSON.stringify(v));},
-    async delete(k){localStorage.removeItem(p+k);},
-    async keys(){return Object.keys(localStorage).filter(x=>x.startsWith(p)).map(x=>x.slice(p.length));},
-    async entries(){const ks=await this.keys();return Promise.all(ks.map(async k=>[k,await this.get(k)]));}
-  });
-  root.kv={colProject:makeNS("colProject:"),colCharacter:makeNS("colCharacter:"),colSnapshots:makeNS("colSnapshots:"),colBackup:makeNS("colBackup:"),colFavorites:makeNS("colFavorites:")};
-  return true;
+function kvReady() {
+  return typeof root !== "undefined" && root && root.kv;
 }
 
 export async function saveProject(project, label = "manual") {
@@ -62,14 +53,9 @@ export async function saveCharacter(project) {
   if (!kvReady()) return { ok: false, error: "存储插件未就绪" };
   const coreChanged = project.meta.coreFingerprint && project.meta.coreFingerprint !== fingerprint(project.characterCore);
   project.meta.coreFingerprint = fingerprint(project.characterCore);
-  await root.kv[C].set(project.code, {
-    code: project.code,
-    name: project.name,
-    characterCore: cloneProject(project.characterCore),
-    referenceImage: cloneProject(project.referenceImage),
-    defaults: cloneProject(project.defaults),
-    savedAt: Date.now(),
-  });
+  const card = createCharacterCard(project);
+  await root.kv[C].set(project.code, card);
+  await root.kv[RC].set(project.code, card);
   return { ok: true, coreChanged, at: Date.now() };
 }
 
@@ -82,6 +68,46 @@ export async function loadProject(code) {
 export async function loadCharacter(code) {
   if (!kvReady()) return null;
   return (await root.kv[C].get(code)) || null;
+}
+
+export async function listCharacters() {
+  if (!kvReady()) return [];
+  const maps = new Map();
+  const sources = [RC, C];
+  for (const bucket of sources) {
+    try {
+      const entries = await root.kv[bucket].entries();
+      for (const [key, v] of entries) {
+        if (!v) continue;
+        const code = v.code || key;
+        maps.set(code, { code, name: v.name || code, savedAt: v.savedAt || 0 });
+      }
+    } catch (e) {}
+  }
+  return [...maps.values()].sort((a, b) => String(a.code).localeCompare(String(b.code)));
+}
+
+export async function saveCharacterCard(card) {
+  if (!kvReady()) return { ok: false, error: "存储插件未就绪" };
+  if (!card || !card.code || !card.characterCore) return { ok: false, error: "无效角色卡" };
+  const data = cloneProject(card);
+  data.format = "COL_CHARACTER_CARD";
+  data.formatVersion = 1;
+  data.savedAt = Date.now();
+  await root.kv[C].set(data.code, data);
+  await root.kv[RC].set(data.code, data);
+  return { ok: true, at: data.savedAt, code: data.code };
+}
+
+export function exportCharacterCard(project) {
+  return JSON.stringify(createCharacterCard(project), null, 2);
+}
+
+export function importCharacterCard(text) {
+  const c = JSON.parse(text);
+  if (!c || !c.code || !c.characterCore || !Array.isArray(c.characterCore.groups)) throw new Error("不是有效的 COL 角色卡");
+  c.characterCore.locked = true;
+  return c;
 }
 
 export async function savedAt(code) {

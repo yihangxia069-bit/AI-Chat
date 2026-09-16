@@ -1,24 +1,3 @@
-
-const API_KEY_STORAGE="pollinations_api_key";
-export function setApiKey(k){localStorage.setItem(API_KEY_STORAGE,k);}
-export function getApiKey(){return localStorage.getItem(API_KEY_STORAGE)||"";}
-window.root=window.root||{};
-root.generateText=async({instruction})=>{
- const key=getApiKey();
- const r=await fetch("https://text.pollinations.ai/openai",{
-  method:"POST",
-  headers:{"Content-Type":"application/json","Authorization":`Bearer ${key}`},
-  body:JSON.stringify({model:"openai-large",messages:[{role:"user",content:instruction}]})
- });
- const j=await r.json();
- return {text:j.choices?.[0]?.message?.content||""};
-};
-root.generateImage=async({prompt,referenceImage})=>{
- const key=getApiKey();
- const url=`https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?model=kontext&seed=1`;
- return {url};
-};
-
 import {
   OVERRIDE_KEYS,
   OVERRIDE_META,
@@ -477,7 +456,7 @@ export async function renderCharacter(project, { onStatus } = {}) {
   if (project.render.lockSeed && Number.isFinite(project.render.seed)) opts.seed = project.render.seed;
   if (onStatus) onStatus("正在渲染角色图（受当前提示词层与种子控制）…");
   const res = await root.generateImage(opts);
-  const dataUrl = res && res.dataUrl ? res.dataUrl : String(res);
+  const dataUrl = await normalizeImageResult(res);
   project.render.lastPrompt = built.prompt;
   project.render.lastNegative = built.negativePrompt;
   project.render.lastDataUrl = dataUrl;
@@ -490,6 +469,61 @@ export async function renderCharacter(project, { onStatus } = {}) {
     layersChanged: [],
   });
   return { dataUrl, built };
+}
+
+
+// 将 Perchance 生图插件可能返回的多种结果统一转换为可直接放进 <img src> 的地址。
+// 某些运行环境返回 dataUrl / url，有些版本可能返回包含 <img> 的 HTML 字符串。
+// 如果最终拿到的只是普通文字，则明确报错，而不是把文字误当成图片地址。
+async function normalizeImageResult(res) {
+  // Perchance 的 text-to-image-plugin 不同版本/环境可能返回：
+  // data URL、URL、<img> HTML、HTMLImageElement、HTMLCanvasElement，
+  // 或带 data 数组的结果对象。统一转换成 <img src> 可以直接使用的地址。
+  if (typeof res === "string") {
+    const text = res.trim();
+    if (/^(data:image\/|https?:\/\/)/i.test(text)) return text;
+    const fromHtml = extractImageSrc(text);
+    if (fromHtml) return fromHtml;
+  }
+
+  if (res && typeof res === "object") {
+    const direct = res.dataUrl || res.dataURL || res.url || res.imageUrl || res.src;
+    if (typeof direct === "string" && /^(data:image\/|https?:\/\/)/i.test(direct.trim())) return direct.trim();
+
+    // 某些版本把图片放在 data[0].url / data[0].dataUrl。
+    if (Array.isArray(res.data)) {
+      for (const item of res.data) {
+        const u = item && (item.dataUrl || item.dataURL || item.url || item.imageUrl || item.src);
+        if (typeof u === "string" && /^(data:image\/|https?:\/\/)/i.test(u.trim())) return u.trim();
+      }
+    }
+
+    if (res.html && typeof res.html === "string") {
+      const fromHtml = extractImageSrc(res.html);
+      if (fromHtml) return fromHtml;
+    }
+
+    // 官方插件返回 canvas 的情况下，直接转成 data URL。
+    const canvas = res.canvas || (typeof HTMLCanvasElement !== "undefined" && res instanceof HTMLCanvasElement ? res : null);
+    if (canvas && typeof canvas.toDataURL === "function") {
+      return canvas.toDataURL("image/png");
+    }
+
+    // 也兼容返回 HTMLImageElement / 其他带 src 的图片对象。
+    const image = res.image || (typeof HTMLImageElement !== "undefined" && res instanceof HTMLImageElement ? res : null);
+    if (image) {
+      if (typeof image === "string" && /^(data:image\/|https?:\/\/)/i.test(image.trim())) return image.trim();
+      if (typeof image.src === "string" && /^(data:image\/|https?:\/\/)/i.test(image.src.trim())) return image.src.trim();
+    }
+  }
+
+  throw new Error("生图服务已经返回结果，但当前版本的结果格式无法转换成图片。请重新加载页面后再试；如果仍然出现此提示，请检查 text-to-image 插件是否正常加载。");
+}
+
+function extractImageSrc(html) {
+  if (!html || typeof html !== "string") return "";
+  const m = html.match(/<img[^>]+src=["']([^"']+)["']/i);
+  return m && /^(data:image\/|https?:\/\/)/i.test(m[1].trim()) ? m[1].trim() : "";
 }
 
 export async function maybeCompact(project, which, buildInstruction) {

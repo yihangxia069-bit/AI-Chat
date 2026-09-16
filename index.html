@@ -30,6 +30,7 @@
   <nav id="tabbar">
     <button class="tab active" data-tab="card">角色卡</button>
     <button class="tab" data-tab="chat">AI 聊天</button>
+  <button class="tab" data-tab="roleai">角色 AI</button>
   </nav>
 
   <main class="studio-body">
@@ -135,6 +136,78 @@
           <div id="renderMeta" class="meta-line">未渲染</div>
         </section>
 
+      </div>
+    </section>
+
+
+    <section class="panel roleai-panel" id="panelRoleAI" data-panel="roleai">
+      <div class="panel-head">
+        <div>
+          <h2>角色 AI</h2>
+          <p class="hint">独立角色卡 · 角色对话 · 记忆 · 生图</p>
+        </div>
+        <div class="roleai-head-actions">
+          <select id="roleAiSelect" class="input role-select"></select>
+          <button id="roleAiNewBtn" class="btn">新建角色</button>
+          <button id="roleAiImportCurrentBtn" class="btn">导入当前角色</button>
+          <button id="roleAiSaveBtn" class="btn primary">保存角色</button>
+          <button id="roleAiDeleteBtn" class="btn danger">删除</button>
+        </div>
+      </div>
+      <div class="roleai-layout">
+        <aside class="roleai-card">
+          <div class="roleai-avatar-wrap">
+            <img id="roleAiAvatar" class="roleai-avatar" alt="角色头像" hidden>
+            <div id="roleAiAvatarEmpty" class="roleai-avatar-empty">头像</div>
+            <label class="btn mini avatar-upload">更换头像<input id="roleAiAvatarFile" type="file" accept="image/*" hidden></label>
+          </div>
+          <div class="roleai-name-row">
+            <input id="roleAiName" class="input" placeholder="角色名称">
+            <input id="roleAiCode" class="input" placeholder="角色编号">
+          </div>
+          <div class="roleai-fields">
+            <label>基础信息<textarea id="roleAiInfo" class="input" rows="3" placeholder="年龄、身份、外貌等基础设定"></textarea></label>
+            <label>默认服装<textarea id="roleAiOutfit" class="input" rows="3" placeholder="角色通常穿什么"></textarea></label>
+            <label>性格<textarea id="roleAiPersonality" class="input" rows="3" placeholder="性格、价值观、行为习惯"></textarea></label>
+            <label>爱好<textarea id="roleAiHobbies" class="input" rows="2" placeholder="爱好、兴趣"></textarea></label>
+            <label>偏好<textarea id="roleAiPreferences" class="input" rows="2" placeholder="喜欢/不喜欢的事物"></textarea></label>
+            <label>说话方式<textarea id="roleAiSpeech" class="input" rows="3" placeholder="语气、口癖、称呼、说话节奏"></textarea></label>
+            <label>背景故事<textarea id="roleAiBackground" class="input" rows="4" placeholder="经历、关系、世界观背景"></textarea></label>
+          </div>
+          <div class="roleai-memory-head"><b>长期记忆</b><button id="roleAiClearMemoryBtn" class="mini">清空</button></div>
+          <textarea id="roleAiMemory" class="input" rows="5" placeholder="AI 会把重要的长期信息记录在这里"></textarea>
+        </aside>
+        <section class="roleai-main">
+          <div class="roleai-tabs">
+            <button class="roleai-subtab active" data-roleai-view="chat">💬 角色聊天</button>
+            <button class="roleai-subtab" data-roleai-view="image">🎨 角色生图</button>
+          </div>
+          <div class="roleai-view active" data-roleai-view-panel="chat">
+            <div id="roleAiChat" class="roleai-chat"></div>
+            <div class="roleai-chat-foot">
+              <div id="roleAiStatus" class="status-line"></div>
+              <div class="composer">
+                <textarea id="roleAiInput" class="input" rows="2" placeholder="和角色说点什么…"></textarea>
+                <button id="roleAiSendBtn" class="btn primary send">发送</button>
+              </div>
+            </div>
+          </div>
+          <div class="roleai-view" data-roleai-view-panel="image">
+            <div class="image-gen-card">
+              <div class="sec-head"><h3>角色生图</h3><span class="badge">独立于主工作室</span></div>
+              <p class="note">会自动带入角色卡的基础信息、默认服装、性格气质和视觉设定；你只需要描述场景、动作或镜头。</p>
+              <label>场景 / 动作<textarea id="roleAiImageScene" class="input" rows="4" placeholder="例如：站在雨后的城市街道，手持透明雨伞，半身构图"></textarea></label>
+              <div class="render-controls">
+                <select id="roleAiImageRes" class="input tiny"><option>512x768</option><option>768x768</option><option>768x1024</option><option>1024x1024</option></select>
+                <input id="roleAiImageSeed" class="input tiny" type="number" placeholder="随机种子">
+                <label class="chk"><input id="roleAiImageLockSeed" type="checkbox"> 锁定种子</label>
+                <button id="roleAiImageBtn" class="btn primary">生成角色图</button>
+              </div>
+              <div class="roleai-image-box"><img id="roleAiImage" alt="角色生图结果" hidden><div id="roleAiImageEmpty" class="render-placeholder">尚未生成</div></div>
+              <div id="roleAiImagePrompt" class="ctx small" hidden></div>
+            </div>
+          </div>
+        </section>
       </div>
     </section>
 
@@ -277,3 +350,4 @@
 </div>
 
 <script type="module" src="src/app.js"></script>
+<script type="module" src="src/role-ai.js"></script>

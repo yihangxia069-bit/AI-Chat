@@ -791,6 +791,40 @@ async function doRender() {
   }
 }
 
+async function normalizeImageResult(res) {
+  if (typeof res === "string") {
+    const text = res.trim();
+    if (/^(data:image\/|https?:\/\/)/i.test(text)) return text;
+    const x = text.match(/<img[^>]+src=["']([^"']+)["']/i);
+    if (x && /^(data:image\/|https?:\/\/)/i.test(x[1].trim())) return x[1].trim();
+  }
+
+  if (res && typeof res === "object") {
+    const direct = res.dataUrl || res.dataURL || res.url || res.imageUrl || res.src;
+    if (typeof direct === "string" && /^(data:image\/|https?:\/\/)/i.test(direct.trim())) return direct.trim();
+
+    if (Array.isArray(res.data)) {
+      for (const item of res.data) {
+        const u = item && (item.dataUrl || item.dataURL || item.url || item.imageUrl || item.src);
+        if (typeof u === "string" && /^(data:image\/|https?:\/\/)/i.test(u.trim())) return u.trim();
+      }
+    }
+
+    if (res.html && typeof res.html === "string") {
+      const x = res.html.match(/<img[^>]+src=["']([^"']+)["']/i);
+      if (x && /^(data:image\/|https?:\/\/)/i.test(x[1].trim())) return x[1].trim();
+    }
+
+    const canvas = res.canvas || (typeof HTMLCanvasElement !== "undefined" && res instanceof HTMLCanvasElement ? res : null);
+    if (canvas && typeof canvas.toDataURL === "function") return canvas.toDataURL("image/png");
+
+    const image = res.image || (typeof HTMLImageElement !== "undefined" && res instanceof HTMLImageElement ? res : null);
+    if (image && typeof image.src === "string" && /^(data:image\/|https?:\/\/)/i.test(image.src.trim())) return image.src.trim();
+  }
+
+  throw new Error("生图服务已经返回结果，但当前版本的结果格式无法转换成图片。请重新加载页面后再试；如果仍然出现此提示，请检查 text-to-image 插件是否正常加载。");
+}
+
 function renderCandidates() {
   const wrap = $("candidatesWrap");
   wrap.hidden = !candidates.length;
@@ -847,7 +881,7 @@ async function doCandidates(n = 4) {
     for (let i = 0; i < n; i++) {
       statusline($("mainStatus"), `连拍候选 ${i + 1}/${n}…（每一张都需要十几秒）`, "busy");
       const res = await root.generateImage(opts);
-      const url = res && res.dataUrl ? res.dataUrl : String(res);
+      const url = await normalizeImageResult(res);
       candidates.push(url);
       renderCandidates();
     }
@@ -974,32 +1008,108 @@ async function refreshSnapshots() {
 }
 
 async function doLoad() {
+  const code = ($("characterSelect") && $("characterSelect").value) || project.code || S.PROJECT_CODE;
   try {
-    const p = await Store.loadProject(S.PROJECT_CODE);
+    const p = await Store.loadProject(code);
     if (p) {
       project = S.migrate(p);
       loadedFromSave = true;
       project.meta.loadedAt = Date.now();
-      S.pushChange(project, { kind: "load", path: "project", note: "加载 COL-001（角色卡 + 覆盖 + 记忆 + 任务）", layersChanged: [] });
+      S.pushChange(project, { kind: "load", path: "project", note: `继续 ${project.code}（角色卡 + 覆盖 + 记忆 + 任务）`, layersChanged: [] });
       project.chats.main.push({
         ts: Date.now(),
         role: "ai",
         kind: "note",
-        text: "已恢复 COL-001：角色卡、当前覆盖、项目记忆、当前任务已载入，AI 已获得这些信息作为当前上下文。",
+        text: `已恢复 ${project.code}：角色卡、当前覆盖、项目记忆、当前任务已载入，可以继续上次工作。`,
       });
       storageSuspect = false;
-      statusline($("mainStatus"), "已加载档案 COL-001。");
+      statusline($("mainStatus"), `已恢复 ${project.code} · ${project.name}。`);
     } else {
-      project = S.createDefaultProject();
-      loadedFromSave = false;
-      S.pushChange(project, { kind: "load", path: "project", note: "无存档，载入出厂 COL-001", layersChanged: [] });
-      statusline($("mainStatus"), "KV 中没有存档，已载入出厂 COL-001。");
+      await loadCharacterCard(code);
+      return;
     }
   } catch (e) {
-    statusline($("mainStatus"), "加载失败：" + errMsg(e));
+    statusline($("mainStatus"), "加载失败：" + errMsg(e), "error");
   }
   touch();
   refreshSnapshots();
+  refreshCharacterCards(project.code);
+}
+
+async function refreshCharacterCards(selectCode = project.code) {
+  const sel = $("characterSelect");
+  if (!sel) return;
+  try {
+    const list = await Store.listCharacters();
+    sel.textContent = "";
+    if (!list.length) {
+      sel.append(el("option", { value: project.code, text: `${project.code} · ${project.name}` }));
+      return;
+    }
+    for (const c of list) sel.append(el("option", { value: c.code, text: `${c.code} · ${c.name}` }));
+    sel.value = list.some((c) => c.code === selectCode) ? selectCode : list[0].code;
+  } catch (e) {
+    sel.textContent = "";
+    sel.append(el("option", { value: project.code, text: `${project.code} · ${project.name}` }));
+  }
+}
+
+async function loadCharacterCard(code) {
+  const target = String(code || "").trim();
+  if (!target) return statusline($("mainStatus"), "请先选择角色卡。", "error");
+  setBusy(true, "正在载入角色卡…");
+  try {
+    // 如果这个角色已有保存过的项目，优先恢复完整项目，这样“载入角色卡”也能继续上次工作。
+    const savedProject = await Store.loadProject(target);
+    if (savedProject && savedProject.characterCore) {
+      project = S.migrate(savedProject);
+      project.meta.loadedAt = Date.now();
+      loadedFromSave = true;
+      S.pushChange(project, { kind: "load", path: "project", note: `载入 ${project.code}：恢复上次项目状态`, layersChanged: [] });
+      statusline($("mainStatus"), `已恢复 ${project.code} · ${project.name}，继续上次工作。`);
+    } else {
+      const card = await Store.loadCharacter(target);
+      if (!card) throw new Error(`找不到角色卡：${target}`);
+      project = S.createProjectFromCharacter(card);
+      loadedFromSave = false;
+      statusline($("mainStatus"), `已载入角色卡 ${project.code} · ${project.name}。`);
+    }
+    lastBuilt = P.buildImagePrompt(project);
+    renderAll();
+    await refreshCharacterCards(project.code);
+    await refreshFavorites();
+    await refreshSnapshots();
+    scheduleAutosave();
+  } catch (e) {
+    statusline($("mainStatus"), "载入失败：" + errMsg(e), "error");
+  } finally {
+    setBusy(false);
+  }
+}
+
+function exportCharacterCard() {
+  const blob = new Blob([Store.exportCharacterCard(project)], { type: "application/json" });
+  const a = el("a", { href: URL.createObjectURL(blob), download: `${project.code}-character-card.json` });
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+async function importCharacterCardFile(file) {
+  try {
+    const card = Store.importCharacterCard(await file.text());
+    const r = await Store.saveCharacterCard(card);
+    if (!r.ok) throw new Error(r.error);
+    project = S.createProjectFromCharacter(card);
+    S.pushChange(project, { kind: "import", path: "character", note: `导入角色卡 ${project.code} · ${project.name}`, layersChanged: [] });
+    renderAll();
+    await refreshCharacterCards(project.code);
+    scheduleAutosave();
+    statusline($("mainStatus"), `已导入并载入 ${project.code} · ${project.name}。`);
+  } catch (e) {
+    statusline($("mainStatus"), "角色卡导入失败：" + errMsg(e), "error");
+  }
 }
 
 async function doSaveCharacter() {
@@ -1008,6 +1118,7 @@ async function doSaveCharacter() {
     S.pushChange(project, { kind: "save", path: "character", note: "保存角色卡（人物形象基准未被修改）" + (r.coreChanged ? " ⚠ 基准指纹变化" : ""), layersChanged: [] });
     renderStatus();
   statusline($("mainStatus"), "已保存角色卡。" + (r.coreChanged ? " ⚠ 检测到人物形象基准变化。" : ""));
+  await refreshCharacterCards(project.code);
 }
 
 async function doSaveProject() {
@@ -1042,6 +1153,15 @@ function wire() {
     if (b) sendMain(b.dataset.q);
   });
   $("loadBtn").onclick = doLoad;
+  $("loadCharacterBtn").onclick = () => loadCharacterCard($("characterSelect").value);
+  $("characterSelect").onchange = () => statusline($("mainStatus"), `已选择角色卡 ${$("characterSelect").value}，点击「载入角色卡」开始使用。`);
+  $("importCharacterBtn").onclick = () => $("importCharacterFile").click();
+  $("importCharacterFile").onchange = async () => {
+    const f = $("importCharacterFile").files[0];
+    if (f) await importCharacterCardFile(f);
+    $("importCharacterFile").value = "";
+  };
+  $("exportCharacterBtn").onclick = exportCharacterCard;
   $("saveCharBtn").onclick = doSaveCharacter;
   $("saveProjBtn").onclick = doSaveProject;
   $("renderBtn").onclick = doRender;
@@ -1199,6 +1319,11 @@ async function boot() {
     loaded = await Store.loadBackup(S.PROJECT_CODE).catch(() => null);
   }
 
+  try {
+    const existingCard = await Store.loadCharacter(S.PROJECT_CODE);
+    if (!existingCard) await Store.saveCharacter(S.createDefaultProject());
+  } catch (e) {}
+
   if (loaded && loaded.characterCore) {
     project = S.migrate(loaded);
     loadedFromSave = true;
@@ -1232,6 +1357,7 @@ async function boot() {
   renderAll();
   refreshFavorites();
   refreshSnapshots();
+  refreshCharacterCards(project.code);
   window.__colStudio = {
     get project() {
       return project;

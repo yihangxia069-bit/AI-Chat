@@ -565,6 +565,58 @@ export function createDefaultProject() {
   };
 }
 
+export function createCharacterCard(project) {
+  return {
+    format: "COL_CHARACTER_CARD",
+    formatVersion: 1,
+    code: project.code,
+    name: project.name,
+    characterCore: cloneProject(project.characterCore),
+    referenceImage: cloneProject(project.referenceImage),
+    defaults: cloneProject(project.defaults),
+    rules: cloneProject(project.rules || defaultRules()),
+    promptPolicy: cloneProject(project.promptPolicy || {}),
+    castDefaults: cloneProject(project.cast || { mode: "single", count: 1 }),
+    savedAt: Date.now(),
+  };
+}
+
+export function createProjectFromCharacter(card) {
+  const base = createDefaultProject();
+  const c = card || {};
+  base.code = String(c.code || base.code);
+  base.name = String(c.name || base.name);
+  base.characterCore = cloneProject(c.characterCore || base.characterCore);
+  base.characterCore.locked = true;
+  base.referenceImage = cloneProject(c.referenceImage || base.referenceImage);
+  base.defaults = { ...base.defaults, ...cloneProject(c.defaults || {}) };
+  base.rules = cloneProject(c.rules || base.rules);
+  base.rules.identity = `你正在处理 ${base.code}。你不是在重新创造一个角色，你是在持续编辑一个已经存在的角色项目。`;
+  if (!c.rules) {
+    base.rules.coreLock = "Character Core 是锁定的角色身份。除非用户明确执行核心解锁，否则不得修改其中的脸部、发型、体型、标志性配饰与其它核心特征。";
+    base.rules.appearanceIsolation = "修改服装、姿势、表情、背景等覆盖层时，不得连带改变 Character Core；用户没有要求修改的字段必须保持原样。";
+  }
+  base.promptPolicy = { ...base.promptPolicy, ...cloneProject(c.promptPolicy || {}) };
+  base.cast = cloneProject(c.castDefaults || base.cast);
+  base.task = `使用角色卡 ${base.code} · ${base.name}`;
+  base.memory = {
+    lastSummary: `已载入角色卡 ${base.code}，角色核心已锁定。`,
+    lastUserRequest: `载入角色卡 ${base.code}`,
+    lastAIAction: "载入 Character Core、参考图与默认档案。",
+    unfinishedTask: "等待新的角色修改或生图请求。",
+    nextTask: "根据用户要求修改可覆盖项目并生成角色图。",
+    changeLog: [{ ts: Date.now(), kind: "load", path: "character", note: `载入角色卡 ${base.code} · ${base.name}` }],
+  };
+  base.overrides = OVERRIDE_KEYS.reduce((acc, k) => {
+    acc[k] = { value: "", prompt: "", source: "default", updatedAt: null, note: "" };
+    return acc;
+  }, {});
+  base.chats = { main: [], mainSummary: "" };
+  base.render = { seed: 771, lockSeed: true, resolution: "512x768", lastPrompt: "", lastNegative: "", lastDataUrl: "", updatedAt: null, lastLayers: {} };
+  base.meta = { createdAt: Date.now(), updatedAt: Date.now(), lastSavedAt: null, loadedAt: Date.now(), saveCount: 0, revision: 0 };
+  return base;
+}
+
 export function cloneProject(p) {
   return JSON.parse(JSON.stringify(p));
 }

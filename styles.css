@@ -760,3 +760,49 @@ body {
   .panel-head { padding: 11px 12px; }
   .panel-body { padding: 10px; }
 }
+
+
+/* =========================================================
+   V4.2 独立「角色 AI」界面
+   ========================================================= */
+.roleai-panel{min-height:0}
+.roleai-head-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.roleai-layout{display:grid;grid-template-columns:minmax(280px,360px) minmax(0,1fr);gap:14px;padding:14px;min-height:0}
+.roleai-card,.roleai-main{border:1px solid var(--line,#2b3340);background:var(--panel,#111722);border-radius:16px;overflow:hidden}
+.roleai-card{padding:16px}
+.roleai-avatar-wrap{position:relative;display:grid;place-items:center;margin-bottom:12px}
+.roleai-avatar,.roleai-avatar-empty{width:130px;height:130px;border-radius:28px;object-fit:cover;border:1px solid var(--line,#2b3340);background:rgba(255,255,255,.03)}
+.roleai-avatar-empty{display:grid;place-items:center;color:var(--muted,#8993a3);font-size:13px}
+.avatar-upload{position:absolute;bottom:-5px;right:calc(50% - 88px);cursor:pointer}
+.roleai-name-row{display:grid;grid-template-columns:1fr 120px;gap:8px;margin-bottom:12px}
+.roleai-fields{display:grid;gap:10px}
+.roleai-fields label,.image-gen-card>label{display:grid;gap:5px;color:var(--muted,#9aa4b5);font-size:12px}
+.roleai-fields textarea{resize:vertical}
+.roleai-memory-head{display:flex;align-items:center;justify-content:space-between;margin:16px 0 6px;color:var(--text,#e7ebf2)}
+.roleai-main{display:flex;flex-direction:column;min-height:620px}
+.roleai-tabs{display:flex;gap:6px;padding:10px;border-bottom:1px solid var(--line,#2b3340);background:rgba(255,255,255,.02)}
+.roleai-subtab{border:0;background:transparent;color:var(--muted,#9aa4b5);padding:9px 14px;border-radius:10px;cursor:pointer}
+.roleai-subtab.active{background:rgba(255,255,255,.08);color:var(--text,#fff)}
+.roleai-view{display:none;flex:1;min-height:0}
+.roleai-view.active{display:flex;flex-direction:column}
+.roleai-chat{flex:1;overflow:auto;padding:18px;min-height:430px}
+.roleai-chat-empty{display:grid;place-items:center;min-height:300px;color:var(--muted,#8993a3);text-align:center}
+.roleai-msg{display:flex;gap:9px;margin:10px 0;align-items:flex-start}
+.roleai-msg.user{justify-content:flex-end}
+.roleai-bubble{max-width:min(78%,680px);padding:10px 13px;border-radius:14px;line-height:1.65;white-space:pre-wrap;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.06)}
+.roleai-msg.user .roleai-bubble{background:rgba(100,150,255,.12)}
+.roleai-msg-avatar{width:30px;height:30px;border-radius:9px;object-fit:cover}
+.roleai-chat-foot{padding:10px 14px;border-top:1px solid var(--line,#2b3340)}
+.image-gen-card{padding:18px;display:grid;gap:12px;overflow:auto}
+.roleai-image-box{min-height:420px;display:grid;place-items:center;border:1px dashed var(--line,#2b3340);border-radius:14px;overflow:hidden;background:rgba(0,0,0,.12)}
+.roleai-image-box img{max-width:100%;max-height:650px;object-fit:contain}
+.roleai-panel .btn.danger{border-color:#8d4141}
+@media(max-width:900px){
+  .roleai-layout{grid-template-columns:1fr}
+  .roleai-card{order:1}.roleai-main{order:0;min-height:560px}
+}
+@media(max-width:560px){
+  .roleai-name-row{grid-template-columns:1fr}
+  .roleai-head-actions{width:100%}
+  .roleai-layout{padding:8px}
+}
