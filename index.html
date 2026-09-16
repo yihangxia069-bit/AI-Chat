@@ -279,10 +279,11 @@
 
 </div>
 
-<script type="module" src="src/app.js"></script>
+<script type="module" src="./app.js"></script>
 
 <script type="module">
-import {setApiKey,getApiKey} from "./src/ai.js";
+import {setApiKey,getApiKey} from "./ai.js";
+
 const input=document.getElementById("apiKeyInput");
 const state=document.getElementById("apiKeyState");
 input.value=getApiKey();
