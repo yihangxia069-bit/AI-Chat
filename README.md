@@ -528,3 +528,15 @@ await window.__colStudio.save();
   而不是继续往提示词里堆词。
 - 如果想做多角色（多个**项目**，不是画面里的多个人），`PROJECT_CODE` / `createDefaultProject()`
   需要参数化，kv 槽位也要按 code 分片。
+
+## 6. 角色卡系统（COL）
+
+V4 起，COL 不再把 `COL-001` 当成唯一可用角色。角色卡与项目状态分开：
+
+- 「保存角色卡」只保存 Character Core、参考图、默认档案、规则与 Prompt Policy，不保存当前覆盖、聊天进度等工作状态。
+- 「保存项目」保存完整工作状态，包括当前覆盖、AI 聊天、Project Memory、Change Log、渲染结果等。
+- 顶部角色卡选择框可以载入任意已保存角色卡；如果该角色已经有同 code 的项目存档，会优先恢复项目，从而直接继续上次工作。
+- 「导入角色卡」接受 `COL_CHARACTER_CARD` JSON；导入后会自动保存到角色卡库并立即载入。
+- 「导出角色卡」只导出角色身份档案，不把聊天记录和临时修改混进去，方便在另一份 COL 生成器里复用。
+
+图像生成仍由 `generateImage = {import:text-to-image-plugin}` 提供；主 AI 负责理解自然语言、修改当前角色状态并构建图像 Prompt，最终由渲染按钮调用生图服务。

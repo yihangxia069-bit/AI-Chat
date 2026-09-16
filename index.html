@@ -6,7 +6,7 @@
     <div class="brand">
       <div class="logo">COL</div>
       <div class="brand-text">
-        <h1>COL 角色工作室</h1>
+        <h1>COL · AI 生图角色工作室</h1>
         <div class="sub"><span id="projCode">COL-001</span> · <span id="charName">哥伦比娅</span></div>
       </div>
     </div>
@@ -16,9 +16,14 @@
       <span id="healthBadge" class="health-badge">体检 —</span>
     </div>
     <div class="top-actions">
-      <button id="loadBtn" class="btn">加载 COL-001</button>
-      <button id="saveCharBtn" class="btn">保存角色</button>
+      <select id="characterSelect" class="input role-select" title="选择角色卡"></select>
+      <button id="loadCharacterBtn" class="btn">载入角色卡</button>
+      <button id="loadBtn" class="btn">继续项目</button>
+      <button id="saveCharBtn" class="btn">保存角色卡</button>
       <button id="saveProjBtn" class="btn primary">保存项目</button>
+      <button id="importCharacterBtn" class="btn">导入角色卡</button>
+      <button id="exportCharacterBtn" class="btn">导出角色卡</button>
+      <input id="importCharacterFile" type="file" accept=".json,application/json" hidden>
     </div>
   </header>
 
@@ -33,7 +38,7 @@
       <div class="panel-head">
         <div>
           <h2>角色卡</h2>
-          <p class="hint">收藏 · 角色 · 结果</p>
+          <p class="hint">角色卡 · AI 生图 · 收藏 · 结果</p>
         </div>
         <span class="badge" id="revBadge">版本 0</span>
       </div>
@@ -136,8 +141,8 @@
     <section class="panel" id="panelChat" data-panel="chat">
       <div class="panel-head">
         <div>
-          <h2>AI 聊天</h2>
-          <p class="hint">现在要做什么 · 其余设置都在下面</p>
+          <h2>AI 聊天 / 生图指令</h2>
+          <p class="hint">告诉 AI 你想让当前角色做什么；发送后可直接渲染角色图</p>
         </div>
         <button id="clearChatBtn" class="mini">清空对话</button>
       </div>
