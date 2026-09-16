@@ -1,14 +1,6 @@
 <link rel="stylesheet" href="src/styles.css">
 
 <div id="app">
-<div style="padding:12px;border:1px solid #444;border-radius:12px;margin:12px;background:#111;color:#fff">
-<b>Pollinations API Key</b>
-<input id="apiKeyInput" type="password" placeholder="sk_..." style="width:100%;padding:8px;margin:8px 0">
-<button id="saveApiKeyBtn">保存到本机</button>
-<button id="testApiKeyBtn">测试 Key</button>
-<span id="apiKeyState"></span>
-</div>
-
 
   <header id="topbar">
     <div class="brand">
@@ -279,19 +271,4 @@
 
 </div>
 
-<script type="module" src="./app.js"></script>
-
-<script type="module">
-import {setApiKey,getApiKey} from "./ai.js";
-
-const input=document.getElementById("apiKeyInput");
-const state=document.getElementById("apiKeyState");
-input.value=getApiKey();
-document.getElementById("saveApiKeyBtn").onclick=()=>{setApiKey(input.value.trim());state.textContent=" 已保存";};
-document.getElementById("testApiKeyBtn").onclick=async()=>{
- try{
-  const r=await fetch("https://text.pollinations.ai/openai",{method:"POST",headers:{"Content-Type":"application/json","Authorization":`Bearer ${input.value.trim()}`},body:JSON.stringify({model:"openai-large",messages:[{role:"user",content:"hi"}]})});
-  state.textContent=r.ok?" Key 可用":" Key 失败";
- }catch(e){state.textContent=" 网络错误";}
-};
-</script>
+<script type="module" src="src/app.js"></script>
